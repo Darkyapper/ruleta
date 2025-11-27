@@ -3,243 +3,272 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Randomy - Ruleta para Sorteos GRATIS SIN ANUNCIOS</title>
+  <title>Ruleta del Destino - GRATIS SIN ANUNCIOS</title>
 
-  <!-- Google Font -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-
-  <!-- Bootstrap CSS + jQuery (CDN) -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
+  
   <style>
-    :root{ --bg:#f6f7fb; --card:#ffffff; --accent:#4f46e5; --muted:#6b7280 }
-    *{ box-sizing:border-box; }
-    body{ font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background:var(--bg); color:#111; padding:16px }
+    :root{ --bg:#f0f2f5; --card:#ffffff; --accent:#6366f1; --arrow:#ef4444; }
+    body{ font-family: 'Poppins', sans-serif; background:var(--bg); color:#1e293b; padding:20px; }
 
-    .container-app{ max-width:1100px; margin:0 auto }
-    .card{ background:var(--card); border:0; border-radius:12px; box-shadow:0 6px 20px rgba(16,24,40,0.06); padding:16px }
+    .container-app{ max-width:1000px; margin:0 auto; }
+    .main-card{ background:var(--card); border-radius:16px; box-shadow:0 10px 25px rgba(0,0,0,0.05); padding:24px; display:flex; gap:32px; flex-wrap:wrap; }
+    
+    /* Área de la ruleta */
+    .wheel-section{ flex:1; min-width:300px; display:flex; flex-direction:column; align-items:center; position:relative; }
+    .wheel-wrapper{ position:relative; width:400px; max-width:100%; aspect-ratio:1/1; }
+    
+    /* El contenedor que gira */
+    .wheel-container{ width:100%; height:100%; border-radius:50%; position:relative; transition: transform 5s cubic-bezier(0.25, 0.1, 0.25, 1); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+    canvas{ display:block; width:100%; height:100%; border-radius:50%; }
 
-    /* Layout */
-    .layout{ display:flex; gap:16px; align-items:flex-start }
-    @media (max-width:900px){ .layout{ flex-direction:column } }
+    /* La FLECHA (Pointer) - Estilo mejorado para que se vea claro */
+    .pointer {
+        position: absolute;
+        top: -25px; /* Sube la flecha para que toque el borde */
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+        width: 40px;
+        height: 50px;
+        /* Forma de flecha con CSS */
+        clip-path: polygon(50% 100%, 0% 0%, 100% 0%);
+        background: var(--arrow);
+        filter: drop-shadow(0 4px 2px rgba(0,0,0,0.2));
+    }
 
-    /* Wheel area */
-    .wheel-wrap{ width:520px; max-width:48vw; aspect-ratio:1/1; position:relative; display:flex; align-items:center; justify-content:center }
-    .wheel-container{ width:100%; height:100%; border-radius:50%; overflow:visible; display:flex; align-items:center; justify-content:center; transition:transform 5s cubic-bezier(.17,.67,.34,1); }
-    canvas{ width:100%; height:100%; display:block }
+    /* Controles */
+    .controls-section{ flex:1; min-width:300px; display:flex; flex-direction:column; gap:16px; }
+    .list-box{ background:#f8fafc; border:2px solid #e2e8f0; border-radius:12px; height:300px; overflow-y:auto; padding:10px; }
+    .list-item{ background:white; border:1px solid #e2e8f0; padding:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-weight:500; }
+    /* Resaltar visualmente al primero (aunque el usuario no sepa que es el ganador) */
+    .list-item:first-child { border-left: 4px solid var(--accent); }
 
-    /* Pointer */
-    .pointer{ position:absolute; top:8px; left:50%; transform:translateX(-50%); width:0; height:0; border-left:16px solid transparent; border-right:16px solid transparent; border-bottom:26px solid var(--accent); filter:drop-shadow(0 3px 6px rgba(0,0,0,0.12)); }
+    .btn-spin{ background:linear-gradient(135deg, #6366f1, #8b5cf6); color:white; font-size:1.2rem; font-weight:700; border:none; padding:12px; border-radius:10px; box-shadow:0 4px 15px rgba(99,102,241,0.3); transition:transform 0.2s; }
+    .btn-spin:active{ transform:scale(0.98); }
+    .btn-spin:disabled{ opacity:0.7; cursor:not-allowed; }
 
-    /* Controls */
-    .controls{ flex:1 }
-    .names-list{ max-height:360px; overflow:auto; padding:8px; border-radius:8px; border:1px dashed #e6e9ef; background:#fbfbff }
-    .name-item{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px; border-radius:8px }
-    .name-item:first-child{ background:linear-gradient(90deg,rgba(79,70,229,0.06), rgba(79,70,229,0.02)); font-weight:600 }
-
-    .btn-spin{ background:linear-gradient(90deg,var(--accent), #7c3aed); color:white; border:0 }
-    .muted{ color:var(--muted) }
-
-    footer{ margin-top:12px; font-size:13px; color:var(--muted) }
   </style>
 </head>
 <body>
-  <div class="container-app">
-    <h2 class="mb-3">Randomy - Ruleta para Sorteos</h2>
 
-    <div class="card layout p-3">
-      <div style="flex:0 0 520px; max-width:520px;" class="wheel-wrap">
-        <div class="pointer" title="Indicador"></div>
-        <div id="wheelContainer" class="wheel-container" role="img" aria-label="Ruleta de nombres">
-          <canvas id="wheelCanvas" width="800" height="800"></canvas>
-        </div>
-      </div>
-
-      <div class="controls">
-        <div class="mb-3 d-flex gap-2">
-          <input id="nameInput" class="form-control" placeholder="Agregar nombre (Enter)" autocomplete="off">
-          <button id="addBtn" class="btn btn-outline-primary">Agregar</button>
-        </div>
-
-        <div class="d-flex gap-2 mb-2">
-          <button id="spinBtn" class="btn btn-spin btn-lg">Girar</button>
-          <button id="quickSpin" class="btn btn-secondary">Giro rápido</button>
-          <button id="clearBtn" class="btn btn-light">Limpiar</button>
-        </div>
-
-        <div class="names-list mb-2" id="namesList" aria-live="polite"></div>
-
-        <div class="mb-2">
-          <label class="form-label">Instrucciones</label>
-          <div class="form-text muted">Llene la rueda con los nombres de los participantes, una vez listos haga clic en cualquiera de las opciones de giro o sobre la ruleta, espere a que la ruleta se detenga, aparecerá un mensaje indicando quien es el ganador. ¡Mucha suerte!</div>
-        </div>
-
-        <footer>© Randomy 2015 - 2025.</footer>
-      </div>
+<div class="container-app">
+    <div class="text-center mb-4">
+        <h1>Sorteo Aleatorio</h1>
+        <p class="text-muted">¡Gira la ruleta para decidir!</p>
     </div>
-  </div>
 
-  <!-- Modal ganador -->
-  <div class="modal fade" id="winnerModal" tabindex="-1" aria-hidden="true">
+    <div class="main-card">
+        <div class="wheel-section">
+            <div class="wheel-wrapper">
+                <div class="pointer"></div>
+                <div id="wheelBox" class="wheel-container">
+                    <canvas id="wheelCanvas" width="800" height="800"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <div class="input-group">
+                <input type="text" id="inputName" class="form-control" placeholder="Nombre..." autocomplete="off">
+                <button class="btn btn-primary" id="btnAdd">Agregar</button>
+            </div>
+            
+            <div class="list-box" id="nameList">
+                </div>
+
+            <button id="btnSpin" class="btn btn-spin w-100">¡GIRAR!</button>
+            <button id="btnReset" class="btn btn-outline-secondary w-100 btn-sm">Reiniciar</button>
+            
+            <div class="mt-2 text-center">
+                <small class="text-muted" style="font-size:0.75rem; opacity:0.5;">
+                    © 2024 Ruleta del Destino. Hecho con ❤️.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="winnerModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content text-center p-4">
-        <div class="modal-body">
-          <h5 class="text-muted">¡Ganador!</h5>
-          <h1 id="winnerName" class="display-4 mb-3"></h1>
-          <button class="btn btn-primary" data-bs-dismiss="modal">Cerrar</button>
+        <div class="modal-content p-4 text-center">
+            <h3>¡Tenemos un ganador!</h3>
+            <div class="display-1 fw-bold text-primary my-4" id="winnerText"></div>
+            <button class="btn btn-dark" data-bs-dismiss="modal">Cerrar</button>
         </div>
-      </div>
     </div>
-  </div>
+</div>
 
-  <script>
-    // Ruleta trucada - siempre gana el primer elemento en la lista
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // --- CONFIGURACIÓN ---
+    // Nombres iniciales (El índice 0 "Yo" será el ganador siempre)
+    let names = ["Amalia", "Luis", "Rocío", "Smith", "Francisca", "Agrega más"];
+    const colors = ["#F43F5E", "#3B82F6", "#10B981", "#F59E0B", "#8B5CF6", "#EC4899", "#6366F1"];
+    
     const canvas = document.getElementById('wheelCanvas');
     const ctx = canvas.getContext('2d');
-    const wheelContainer = document.getElementById('wheelContainer');
-    const namesListEl = $('#namesList');
-    const nameInput = $('#nameInput');
-    let names = ['David']; // ejemplo inicial (puedes dejar vacío o cambiar)
+    const wheelBox = document.getElementById('wheelBox');
+    const winnerModal = new bootstrap.Modal(document.getElementById('winnerModal'));
+    
+    // --- DIBUJAR LA RULETA ---
+    function draw() {
+        const n = names.length;
+        if (n === 0) return;
+        
+        const w = canvas.width; 
+        const h = canvas.height;
+        const cx = w / 2;
+        const cy = h / 2;
+        const radius = w / 2 - 10;
+        const sliceAngle = (2 * Math.PI) / n;
+        
+        ctx.clearRect(0, 0, w, h);
 
-    // colores para sectores
-    const palette = ["#F97316","#FB7185","#34D399","#60A5FA","#A78BFA","#F59E0B","#EF4444","#10B981"]
+        // Importante: Empezamos a dibujar desde -90 grados (las 12 en punto)
+        // Esto alinea el dibujo lógico con la flecha física.
+        let currentAngle = -Math.PI / 2;
 
-    function drawWheel(){
-      const w = canvas.width;
-      const h = canvas.height;
-      ctx.clearRect(0,0,w,h);
+        for (let i = 0; i < n; i++) {
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.arc(cx, cy, radius, currentAngle, currentAngle + sliceAngle);
+            ctx.closePath();
+            
+            ctx.fillStyle = colors[i % colors.length];
+            ctx.fill();
+            
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = "#ffffff";
+            ctx.stroke();
 
-      if(names.length === 0){
-        // círculo vacío
-        ctx.fillStyle = '#f3f4f6';
-        ctx.beginPath(); ctx.arc(w/2,h/2, w/2 - 8, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#6b7280'; ctx.font = '20px Poppins'; ctx.textAlign='center'; ctx.fillText('Agrega nombres', w/2, h/2);
-        return;
-      }
+            // Texto
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(currentAngle + sliceAngle / 2);
+            ctx.textAlign = "right";
+            ctx.fillStyle = "#fff";
+            ctx.font = "bold 40px Poppins";
+            ctx.fillText(names[i], radius - 30, 14);
+            ctx.restore();
 
-      const cx = w/2, cy = h/2, radius = Math.min(w,h)/2 - 6;
-      const startAngle = -Math.PI/2; // 12 o'clock
-      const slice = (Math.PI*2) / names.length;
-
-      for(let i=0;i<names.length;i++){
-        const ang = startAngle + i*slice;
+            currentAngle += sliceAngle;
+        }
+        
+        // Borde exterior bonito
         ctx.beginPath();
-        ctx.moveTo(cx,cy);
-        ctx.arc(cx,cy, radius, ang, ang+slice);
-        ctx.closePath();
-        ctx.fillStyle = palette[i % palette.length];
-        ctx.fill();
-
-        // texto
-        ctx.save();
-        ctx.translate(cx,cy);
-        const textAngle = ang + slice/2;
-        ctx.rotate(textAngle);
-        ctx.textAlign = 'right';
-        ctx.fillStyle = 'white';
-        ctx.font = (radius*0.09) + 'px Poppins';
-        // limitar longitud
-        const label = names[i];
-        ctx.fillText(label, radius - 12, 6);
-        ctx.restore();
-      }
-
-      // borde
-      ctx.beginPath(); ctx.arc(cx,cy, radius+4, 0, Math.PI*2); ctx.lineWidth = 6; ctx.strokeStyle='#fff'; ctx.stroke();
+        ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+        ctx.lineWidth = 10;
+        ctx.strokeStyle = "rgba(0,0,0,0.1)";
+        ctx.stroke();
     }
 
-    function renderNamesList(){
-      namesListEl.empty();
-      if(names.length===0){ namesListEl.append('<div class="p-3 muted">No hay nombres aún.</div>'); return; }
-      names.forEach((n, idx)=>{
-        const item = $(`<div class="name-item" data-idx="${idx}"><div>${idx===0?'<strong></strong>':''} ${escapeHtml(n)}</div><div class="d-flex gap-2"><button class="btn btn-sm btn-outline-danger remove">Eliminar</button></div></div>`);
-        if(idx===0) item.css({'background':'linear-gradient(90deg,rgba(79,70,229,0.06), rgba(79,70,229,0.02))','font-weight':'600'});
-        namesListEl.append(item);
-      });
+    // --- RENDERIZAR LISTA ---
+    function renderList() {
+        const listEl = $('#nameList');
+        listEl.empty();
+        names.forEach((name, i) => {
+            listEl.append(`
+                <div class="list-item">
+                    <span>${i+1}. ${name}</span>
+                    <button class="btn btn-sm btn-danger remove-btn" data-idx="${i}">&times;</button>
+                </div>
+            `);
+        });
+        draw();
     }
 
-    function escapeHtml(text){ return $('<div>').text(text).html(); }
+    // --- LÓGICA DE GIRO (TRUCADA) ---
+    let currentRotation = 0; // Guardamos la rotación actual para que no salte
 
-    function updateAll(){ drawWheel(); renderNamesList(); }
+    $('#btnSpin').click(function() {
+        if (names.length === 0) return;
 
-    // Event bindings
-    $('#addBtn').on('click', ()=>{ const v = nameInput.val().trim(); if(v){ names.push(v); nameInput.val(''); updateAll(); } });
-    nameInput.on('keypress', (e)=>{ if(e.which===13){ $('#addBtn').click(); } });
+        // Desactivar botón durante el giro
+        $(this).prop('disabled', true);
 
-    $('#namesList').on('click', '.remove', function(){ const idx = $(this).closest('.name-item').data('idx'); names.splice(idx,1); updateAll(); });
+        // 1. Matemáticas para ganar SIEMPRE el índice 0
+        const spins = 5; // Vueltas completas mínimas (hace que se vea rápido)
+        const sliceDegrees = 360 / names.length;
+        
+        // El índice 0 se dibuja empezando a las 12 en punto (-90 grados en canvas, 0 grados visuales CSS).
+        // Abarca desde 0 grados hasta +sliceDegrees (en sentido horario).
+        // Su CENTRO está en: sliceDegrees / 2.
+        // Para que el centro quede bajo la flecha (que está en 0 grados visuales),
+        // tenemos que rotar la ruleta hacia atrás (anti-horario) esa cantidad.
+        
+        const targetWedgeCenter = sliceDegrees / 2; 
+        
+        // Añadimos un poco de aleatoriedad (jitter) para que no caiga siempre EN EL MISMO PIXEL
+        // pero asegurando que no se salga del sector ganador.
+        // Margen de seguridad del 20% en cada lado.
+        const margin = sliceDegrees * 0.2;
+        const randomOffset = (Math.random() * (sliceDegrees - margin * 2)) - (sliceDegrees / 2 - margin);
+        
+        // Fórmula Mágica:
+        // Queremos llegar a -(targetWedgeCenter).
+        // Sumamos vueltas completas (360 * spins).
+        // Restamos la posición actual modulada para suavizar transiciones si ya giró antes.
+        
+        const baseTarget = -(targetWedgeCenter) + randomOffset;
+        const totalDegrees = (360 * spins) + baseTarget;
+        
+        // Ajustamos respecto a donde ya estamos para seguir girando hacia adelante
+        // Esto evita que la ruleta gire "hacia atrás" si reiniciamos
+        const finalRotation = currentRotation + totalDegrees + (360 - (currentRotation % 360));
 
-    $('#clearBtn').on('click', ()=>{ names=[]; updateAll(); });
+        // 2. Aplicar CSS
+        wheelBox.style.transition = "transform 6s cubic-bezier(0.2, 0.8, 0.1, 1)"; // Efecto frenado realista
+        wheelBox.style.transform = `rotate(${finalRotation}deg)`;
+        
+        currentRotation = finalRotation; // Actualizar estado
 
-    // Spin logic: always land on index 0 (primer nombre)
-    function spin(fullSpeed = true){
-      if(names.length===0) return;
+        // 3. Mostrar ganador al terminar
+        setTimeout(() => {
+            $('#winnerText').text(names[0]); // Siempre gana el 0
+            winnerModal.show();
+            $('#btnSpin').prop('disabled', false);
+            
+            // Efecto de confeti simple (opcional visual)
+            createConfetti();
+        }, 6000); // 6s coincide con la transición CSS
+    });
 
-      const n = names.length;
-      const sliceDeg = 360 / n;
-      const startDeg = -90; // start at top
-      // center angle of sector 0 (in degrees, relative to canvas 0 at 3 o'clock). We used startAngle -90 so sector 0 center:
-      const centerAngle = (startDeg + sliceDeg/2) % 360; // e.g. -90 + slice/2
+    // --- MANEJO DE EVENTOS ---
+    $('#btnAdd').click(() => {
+        const val = $('#inputName').val().trim();
+        if(val) { names.push(val); $('#inputName').val(''); renderList(); }
+    });
+    
+    $('#inputName').keypress((e) => {
+        if(e.which === 13) $('#btnAdd').click();
+    });
 
-      // pick number of extra rotations
-      const rotations = fullSpeed ? getRandomInt(6,9) : getRandomInt(2,5);
+    $(document).on('click', '.remove-btn', function() {
+        const idx = $(this).data('idx');
+        names.splice(idx, 1);
+        renderList();
+    });
 
-      // small random offset constrained so result stays within sector 0
-      const halfSlice = sliceDeg/2 - 2; // margin to avoid edges
-      const randOffset = (Math.random()* (halfSlice*2)) - halfSlice; // between -halfSlice and +halfSlice
+    $('#btnReset').click(() => {
+        names = [];
+        renderList();
+        wheelBox.style.transition = 'none';
+        wheelBox.style.transform = 'rotate(0deg)';
+        currentRotation = 0;
+    });
 
-      // target rotation (we rotate the wheel so that the desired centerAngle moves to pointer at top (0deg))
-      // final angle = rotations*360 + (360 - (centerAngle + randOffset))
-      const finalAngle = rotations*360 + (360 - ((centerAngle + randOffset + 360) % 360));
-
-      // Apply rotation to wheelContainer with CSS transform
-      wheelContainer.style.transition = 'transform ' + (fullSpeed? '5s' : '3s') + ' cubic-bezier(.17,.67,.34,1)';
-      wheelContainer.style.transform = `rotate(${finalAngle}deg)`;
-
-      // when transition ends, show modal and reset transform to keep wheel visually at final position but with normalized rotation (avoid huge accumulations)
-      const onEnd = () => {
-        wheelContainer.removeEventListener('transitionend', onEnd);
-
-        // normalize rotation: compute normalized degrees (mod 360)
-        const normalized = finalAngle % 360;
-        // set immediate transform to normalized (no transition)
-        wheelContainer.style.transition = 'none';
-        wheelContainer.style.transform = `rotate(${normalized}deg)`;
-
-        // show winner (always names[0])
-        $('#winnerName').text(names[0]);
-        const modal = new bootstrap.Modal(document.getElementById('winnerModal'));
-        modal.show();
-      };
-
-      wheelContainer.addEventListener('transitionend', onEnd);
+    // Efecto Confeti simple
+    function createConfetti() {
+        // Solo lógica visual extra, no afecta la ruleta
     }
 
-    // helpers
-    function getRandomInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+    // Inicializar
+    renderList();
 
-    $('#spinBtn').on('click', ()=> spin(true));
-    $('#quickSpin').on('click', ()=> spin(false));
-
-    // click on wheel to spin
-    $('#wheelContainer').on('click', ()=> spin(true));
-
-    // initial render
-    updateAll();
-
-    // make canvas resize nicely when container changes
-    function resizeCanvasToDisplaySize(){
-      const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      const w = Math.round(rect.width * dpr);
-      const h = Math.round(rect.height * dpr);
-      if(canvas.width !== w || canvas.height !== h){ canvas.width = w; canvas.height = h; drawWheel(); }
-    }
-    window.addEventListener('resize', resizeCanvasToDisplaySize);
-    // initial call
-    setTimeout(resizeCanvasToDisplaySize, 50);
-
-  </script>
+</script>
 </body>
 </html>
